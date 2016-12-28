@@ -1,7 +1,7 @@
 # -*- coding:UTF-8 -*-
 from tkinter import *
 from tkinter.messagebox import *
-from PIL import ImageTk
+from PIL import ImageTk,Image
 
 class ScrolledCanvas(Frame):
     Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
@@ -9,7 +9,7 @@ class ScrolledCanvas(Frame):
     TreeNum = 0
     PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[], 'DP1': [],'DP2':[], 'DC': [], 'DL':[],'DBH': [],'Comb':[]}
     PhotoSize = []
-    Rotate = 0 # -1(逆时针90度), +1(顺时针90度)
+    Rotate = 0 # []+(逆时针90度), -(顺时针90度)
     '''DataFrame
     Not need to record the position because can get the point position by :canvas.coords(ID)
     coords(i, new_xy) # change coordinates
@@ -48,22 +48,33 @@ class ScrolledCanvas(Frame):
         canvas.config(yscrollcommand=sbary.set)
 
         sbary.pack(side=RIGHT, fill=Y)
+        sbarx.pack(side=BOTTOM, fill=X)
         canvas.pack(side=TOP, expand=YES,fill=BOTH)
-        sbarx.pack(side=TOP, fill=X)
 
         self.canvas = canvas
-        self.Open_Picture()
-
+        # self.Open_Picture()
 
     def Open_Picture(self,event=None):
-        photo = ImageTk.PhotoImage(file=self.Imagedir)
+        self.ClearCanvas()
+        image = Image.open(self.Imagedir)
+        # self.kinds = [file=image, image.transpose]
+        # photo = ImageTk.PhotoImage(file=self.Imagedir)
+        if self.Rotate == 90 or self.Rotate == -270:
+            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_270))
+        elif self.Rotate == 180 or self.Rotate == -180:
+            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_180))
+        elif self.Rotate == 270 or self.Rotate == -90:
+            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_90))
+        else:
+            photo = ImageTk.PhotoImage(image)
         self.photo = photo
         self.canvas.create_image(0, 0, image=photo, anchor=NW)
         self.canvas.config(scrollregion=(0,0,photo.width(),photo.height()))
         self.PhotoSize=[photo.width(),photo.height()]
 
-    def ClearCanvas(self,event):
-        event.widget.delete('all')  # use tag all
+    def ClearCanvas(self,event=None):
+        # event.widget.delete('all')  # use tag all
+        self.canvas.delete('all')
         self.PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[], 'DP1': [],'DP2':[], 'DC': [], 'DL':[],'DBH': [],'Comb':[]}
         self.TreeNum = 0
 
@@ -216,7 +227,31 @@ class ScrolledCanvas(Frame):
         return isin
 
     def Num2Position(self,event=None):
-        # UP1 | UP2 | UC | DP1 | DP2 | DC | PhotoSize
+        # UP1 | UP2 | UC | DP1 | DP2 | DC | PhotoSize + PhotoInfo
+        from PIL import Image, ExifTags
+        img = Image.open(self.Imagedir)
+        exif_human = {ExifTags.TAGS[k]: v for k, v in img._getexif().items() if k in ExifTags.TAGS}
+        # XResolution = exif_human['XResolution'][0]
+        # YResolution = exif_human['YResolution'][0]
+        if exif_human['FocalLength'][1]==0: # lack data
+            FocalLength = 0
+        else:
+            FocalLength = exif_human['FocalLength'][0]/exif_human['FocalLength'][1] # mm
+        if exif_human['FocalPlaneResolutionUnit'] == 2: # inch(default)
+            FPX = exif_human['FocalPlaneXResolution'][1] * 2.54/100 # mm
+            FPY = exif_human['FocalPlaneYResolution'][1] * 2.54/100 # mm
+        else:
+            FPX = str(exif_human['FocalPlaneXResolution'][1])+'mm'
+            FPY = str(exif_human['FocalPlaneYResolution'][1])+'mm'
+        info = {'Size': img.size,
+                # 'YResolution': YResolution,
+                # 'XResolution': XResolution,
+                'FocalLength': FocalLength,
+                'FPX':FPX,
+                'FPY':FPY,
+                'Model': exif_human['Model'],
+                }
+        print(info)
         PointPosition = []
         for i in range(len(self.PointNum['DC'])):
             PointPosition.append([self.ID2Position(self.PointNum['UP1'][i]),
@@ -224,12 +259,14 @@ class ScrolledCanvas(Frame):
                                   self.ID2Position(self.PointNum['UC'][i]),
                                   self.ID2Position(self.PointNum['DP1'][i]),
                                   self.ID2Position(self.PointNum['DP2'][i]),
-                                  self.ID2Position(self.PointNum['UC'][i]),
-                                  self.PhotoSize])
+                                  self.ID2Position(self.PointNum['DC'][i]),
+                                  self.PhotoSize,
+                                  info])
         print(PointPosition)
         return PointPosition
 
 class MenuBar(Frame):
+
     def __init__(self,parent=None):
         Frame.__init__(self, parent)
         self.pack()
@@ -241,7 +278,7 @@ class MenuBar(Frame):
         fbutton.pack(side=LEFT)
         file = Menu(fbutton, tearoff=False)
         file.add_command(label='New', command=self.notdone, underline=0)
-        file.add_command(label='Open', command=self.OpenNew, underline=1)
+        file.add_command(label='Open', command=self.notdone, underline=1)
         fbutton.config(menu=file, bg='white')
 
         ebutton = Menubutton(menubar, text='Edit', underline=0)
@@ -252,9 +289,18 @@ class MenuBar(Frame):
         edit.add_separator()
         ebutton.config(menu=edit, bg='white')
 
+        cbutton = Menubutton(menubar, text='Calculate', underline=0)
+        cbutton.pack(side=LEFT)
+        calcu = Menu(cbutton, tearoff=False)
+        calcu.add_command(label='Distance', command=self.notdone, underline=0)
+        calcu.add_command(label='Angle', command=self.notdone,underline=0)
+        calcu.add_command(label='DBH', command=self.notdone, underline=0)
+        cbutton.config(menu=calcu, bg='white')
+
         submenu = Menu(edit, tearoff=False)
-        submenu.add_command(label='Clockwise 90°', command=self.notdone,underline=0)
-        submenu.add_command(label='Anti-Clockwise 90°', command=self.notdone, underline=0)
+        submenu.add_command(label='Clockwise 90°', command=self.cw90,underline=0)
+        submenu.add_command(label='Anti-Clockwise 90°', command=self.acw90, underline=0)
+        submenu.add_command(label='Clockwise 180°', command=self.cw180, underline=0)
         edit.add_cascade(label='Rotate image', menu=submenu,underline=0)
 
     def notdone(self):
@@ -268,12 +314,30 @@ class MenuBar(Frame):
         ScrolledCanvas.Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
         ScrolledCanvas.Open_Picture()
 
+    def cw90(self):
+        ScrolledCanvas.Rotate += 90
+        if ScrolledCanvas.Rotate == 360:
+            ScrolledCanvas.Rotate = 0
+        ScrolledCanvas.Open_Picture()
+
+    def acw90(self):
+        ScrolledCanvas.Rotate -= 90
+        if ScrolledCanvas.Rotate == -360:
+            ScrolledCanvas.Rotate = 0
+        ScrolledCanvas.Open_Picture()
+
+    def cw180(self):
+        ScrolledCanvas.Rotate += 180
+        if ScrolledCanvas.Rotate == 360:
+            ScrolledCanvas.Rotate = 0
+        ScrolledCanvas.Open_Picture()
+
 if __name__ == '__main__':
     root = Tk()
     root.title('ImageDBH')
     MenuBar = MenuBar(root)
     MenuBar.pack(side=TOP, fill=X)
     ScrolledCanvas = ScrolledCanvas(root)
-    ScrolledCanvas.Imagedir = r'D:/OneDrive/Documents/3 UNB/本科毕业设计/Picture/IMG_1559.JPG'
+    # ScrolledCanvas.Imagedir = r'D:/OneDrive/Documents/3 UNB/本科毕业设计/Picture/IMG_1559.JPG'
     ScrolledCanvas.pack(side=TOP)
     root.mainloop()
