@@ -2,6 +2,7 @@
 from tkinter import *
 from tkinter.messagebox import *
 from PIL import ImageTk,Image
+import DBHCalculation
 
 class ScrolledCanvas(Frame):
     Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
@@ -70,6 +71,7 @@ class ScrolledCanvas(Frame):
         self.photo = photo
         self.canvas.create_image(0, 0, image=photo, anchor=NW)
         self.canvas.config(scrollregion=(0,0,photo.width(),photo.height()))
+        self.canvas.create_line((0,photo.height()/2,photo.width(),photo.height()/2),fill='yellow')
         self.PhotoSize=[photo.width(),photo.height()]
 
     def ClearCanvas(self,event=None):
@@ -143,8 +145,8 @@ class ScrolledCanvas(Frame):
                 # Add tree Number
                 self.TreeNum += 1
                 print(self.PointNum)
-            if not self.NewTree_OnOff == -1:
-                print(self.PointNum)
+            # if not self.NewTree_OnOff == -1:
+                # print(self.PointNum)
 
     def onMovePoint(self,event):
         if self.NewTree_OnOff == -1:# not in add point mode
@@ -251,7 +253,7 @@ class ScrolledCanvas(Frame):
                 'FPY':FPY,
                 'Model': exif_human['Model'],
                 }
-        print(info)
+        # print(info)
         PointPosition = []
         for i in range(len(self.PointNum['DC'])):
             PointPosition.append([self.ID2Position(self.PointNum['UP1'][i]),
@@ -262,7 +264,7 @@ class ScrolledCanvas(Frame):
                                   self.ID2Position(self.PointNum['DC'][i]),
                                   self.PhotoSize,
                                   info])
-        print(PointPosition)
+        # print(PointPosition)
         return PointPosition
 
 class MenuBar(Frame):
@@ -292,7 +294,7 @@ class MenuBar(Frame):
         cbutton = Menubutton(menubar, text='Calculate', underline=0)
         cbutton.pack(side=LEFT)
         calcu = Menu(cbutton, tearoff=False)
-        calcu.add_command(label='Distance', command=self.notdone, underline=0)
+        calcu.add_command(label='Distance', command=self.Distance, underline=0)
         calcu.add_command(label='Angle', command=self.notdone,underline=0)
         calcu.add_command(label='DBH', command=self.notdone, underline=0)
         cbutton.config(menu=calcu, bg='white')
@@ -308,7 +310,6 @@ class MenuBar(Frame):
 
     def Add_points_on(self):
         ScrolledCanvas.NewTree_OnOff=0
-        print(ScrolledCanvas.NewTree_OnOff)
 
     def OpenNew(self):
         ScrolledCanvas.Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
@@ -332,12 +333,16 @@ class MenuBar(Frame):
             ScrolledCanvas.Rotate = 0
         ScrolledCanvas.Open_Picture()
 
+    def Distance(self):
+        PointPosition = ScrolledCanvas.Num2Position()
+        DBHCalculation.output(PointPosition)
+
 if __name__ == '__main__':
     root = Tk()
     root.title('ImageDBH')
     MenuBar = MenuBar(root)
     MenuBar.pack(side=TOP, fill=X)
     ScrolledCanvas = ScrolledCanvas(root)
-    # ScrolledCanvas.Imagedir = r'D:/OneDrive/Documents/3 UNB/本科毕业设计/Picture/IMG_1559.JPG'
+    ScrolledCanvas.Imagedir = r'D:/OneDrive/Documents/3 UNB/本科毕业设计/Picture/IMG_1547.JPG'
     ScrolledCanvas.pack(side=TOP)
     root.mainloop()
