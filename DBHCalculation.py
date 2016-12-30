@@ -122,16 +122,21 @@ def _Calcu_Scale(ReadyData):
     return YScale
 
 def output(PointPosition):
+    Distance_out=[]
+    DBH_out=[]
     for i in range(len(PointPosition)):
-        print(PointPosition[i],i)
+        #print(PointPosition[i],i)
         TanX,TanY = Calcu_TanTheta(PointPosition[i][6],PointPosition[i][7])
         Ready_Data = Judge_PointRealPosition(PointPosition[i])
-        print(Ready_Data)
+        #print(Ready_Data)
         YScale = _Calcu_Scale(Ready_Data)
         Dc = Calcu_Distance(Ready_Data,YScale['YC'],TanY)
         De = Calcu_Distance(Ready_Data,YScale['YE'],TanY)
-        print(Dc,De)
+        #print(Dc,De)
         DBH = Calcu_DBH(Ready_Data, YScale, Dc, De)
-        print(DBH)
-
+        #print(DBH)
+        Distance_out.append(Dc)
+        DBH_out.append(DBH)
+    CalcuData = [Distance_out,DBH_out]
+    return CalcuData
 # output(PointPosition)

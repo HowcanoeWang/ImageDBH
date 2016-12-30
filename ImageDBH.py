@@ -1,7 +1,9 @@
 # -*- coding:UTF-8 -*-
 from tkinter import *
 from tkinter.messagebox import *
-from PIL import ImageTk,Image
+from tkinter.filedialog import *
+# from PIL import ImageTk
+from PIL.ImageTk import Image,PhotoImage
 import DBHCalculation
 
 class ScrolledCanvas(Frame):
@@ -33,7 +35,7 @@ class ScrolledCanvas(Frame):
         self.pack(expand=YES,fill=BOTH)
 
         canvas = Canvas(self, relief=SUNKEN)
-        canvas.config(width=800, height=600)
+        canvas.config(width=800, height=600, bg='white',bd=1)
         canvas.config(highlightthickness=0)
         canvas.bind('<ButtonPress-1>', self.onPutPoint)
         canvas.bind('<B1-Motion>',self.onMovePoint)
@@ -61,13 +63,14 @@ class ScrolledCanvas(Frame):
         # self.kinds = [file=image, image.transpose]
         # photo = ImageTk.PhotoImage(file=self.Imagedir)
         if self.Rotate == 90 or self.Rotate == -270:
-            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_270))
+            photo = PhotoImage(image.transpose(Image.ROTATE_270))
         elif self.Rotate == 180 or self.Rotate == -180:
-            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_180))
+            photo = PhotoImage(image.transpose(Image.ROTATE_180))
         elif self.Rotate == 270 or self.Rotate == -90:
-            photo = ImageTk.PhotoImage(image.transpose(Image.ROTATE_90))
+            photo = PhotoImage(image.transpose(Image.ROTATE_90))
         else:
-            photo = ImageTk.PhotoImage(image)
+            # photo = ImageTk.PhotoImage(image)
+            photo = PhotoImage(image)
         self.photo = photo
         self.canvas.create_image(0, 0, image=photo, anchor=NW)
         self.canvas.config(scrollregion=(0,0,photo.width(),photo.height()))
@@ -222,7 +225,7 @@ class ScrolledCanvas(Frame):
 
     def isin(self,ID):
         isin = False
-        for i in ['UP1','UP2', 'UC', 'DP1','DP2', 'DC', 'DL']:
+        for i in ['UP1','UP2', 'UC', 'DP1','DP2', 'DC']:
             Ans = ID in self.PointNum[i]
             if Ans or False:
                 isin = True
@@ -279,11 +282,11 @@ class MenuBar(Frame):
         fbutton = Menubutton(menubar, text='File', underline=0)
         fbutton.pack(side=LEFT)
         file = Menu(fbutton, tearoff=False)
-        file.add_command(label='New', command=self.notdone, underline=0)
-        file.add_command(label='Open', command=self.notdone, underline=1)
+        file.add_command(label='New', command=self.NewProj, underline=0)
+        file.add_command(label='Open', command=self.OpenProj, underline=1)
         fbutton.config(menu=file, bg='white')
 
-        ebutton = Menubutton(menubar, text='Edit', underline=0)
+        ebutton = Menubutton(menubar, text='Edit', underline=0,state=DISABLED)
         ebutton.pack(side=LEFT)
         edit = Menu(ebutton, tearoff=False)
         edit.add_command(label='Add points', command=self.Add_points_on, underline=0)
@@ -291,7 +294,7 @@ class MenuBar(Frame):
         edit.add_separator()
         ebutton.config(menu=edit, bg='white')
 
-        cbutton = Menubutton(menubar, text='Calculate', underline=0)
+        cbutton = Menubutton(menubar, text='Calculate', underline=0,state=DISABLED)
         cbutton.pack(side=LEFT)
         calcu = Menu(cbutton, tearoff=False)
         calcu.add_command(label='Distance', command=self.Distance, underline=0)
@@ -305,44 +308,144 @@ class MenuBar(Frame):
         submenu.add_command(label='Clockwise 180°', command=self.cw180, underline=0)
         edit.add_cascade(label='Rotate image', menu=submenu,underline=0)
 
+        self.cbutton = cbutton
+        self.ebutton = ebutton
     def notdone(self):
         showerror('Not implemented','Not yet available')
 
     def Add_points_on(self):
         ScrolledCanvas.NewTree_OnOff=0
 
-    def OpenNew(self):
-        ScrolledCanvas.Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
-        ScrolledCanvas.Open_Picture()
-
     def cw90(self):
         ScrolledCanvas.Rotate += 90
         if ScrolledCanvas.Rotate == 360:
             ScrolledCanvas.Rotate = 0
+        SysTemp['Rotate'][PicSelectMenu.NowPicNum] = ScrolledCanvas.Rotate
         ScrolledCanvas.Open_Picture()
 
     def acw90(self):
         ScrolledCanvas.Rotate -= 90
         if ScrolledCanvas.Rotate == -360:
             ScrolledCanvas.Rotate = 0
+        SysTemp['Rotate'][PicSelectMenu.NowPicNum] = ScrolledCanvas.Rotate
         ScrolledCanvas.Open_Picture()
 
     def cw180(self):
         ScrolledCanvas.Rotate += 180
         if ScrolledCanvas.Rotate == 360:
             ScrolledCanvas.Rotate = 0
+        SysTemp['Rotate'][PicSelectMenu.NowPicNum] = ScrolledCanvas.Rotate
         ScrolledCanvas.Open_Picture()
 
     def Distance(self):
         PointPosition = ScrolledCanvas.Num2Position()
-        DBHCalculation.output(PointPosition)
+        data=DBHCalculation.output(PointPosition)
+        msg = 'Distance=' + str(data[0])+ '\n' + 'DBH=' + str(data[1])
+        showinfo(title='results',message=msg)
+
+    def NewProj(self):
+        # Ask = asksaveasfile(title='New project', initialdir=os.getcwd())
+        global Projectdir
+        Projectdir = asksaveasfilename(title='New project', filetypes=[('DBH project', '.dbh')])
+        if Projectdir != '':
+            if Projectdir[-4:]=='.dbh':
+                Projectdir=Projectdir[:-4]
+                # print(Projectdir)
+            PicSelectMenu.AddPicbtn.config(state=NORMAL)
+            self.cbutton.config(state=NORMAL)
+            self.ebutton.config(state=NORMAL)
+
+    def OpenProj(self):
+        global Projectdir,SysTemp
+        Projectdir = askopenfilename(title='New project', filetypes=[('DBH project', '.dbh')])
+        Projectdir = Projectdir[:-4]
+        # print(Projectdir)
+        if Projectdir != '':
+            f = open(Projectdir + '.dbh', 'r')
+            SysTemp = eval(f.read())
+            f.close()
+            PicSelectMenu.AddPicButton(SysTemp['photos'],new=False)
+            PicSelectMenu.AddPicbtn.config(state=NORMAL)
+            self.cbutton.config(state=NORMAL)
+            self.ebutton.config(state=NORMAL)
+
+class PicSelectMenu(Frame):
+
+    def __init__(self,parent=None):
+        Frame.__init__(self,parent)
+        AddPicbtn = Button(parent,text='Add\nImages', command=self.AddPic,bg='white',state=DISABLED)
+        AddPicbtn.pack(side=RIGHT, fill=Y)
+        toolbar = Frame(parent, relief=SUNKEN, bd=2)
+        toolbar.config(height=45, bg='white')
+        toolbar.pack(side=BOTTOM, fill=X)
+        self.toolbar=toolbar
+        self.AddPicbtn = AddPicbtn
+        self.toolPhotoDir = []
+        self.AddPicButton(SysTemp['photos'])
+        self.NowPicNum = 0
+
+    def AddPicButton(self,Picdir,new=True):
+        global SysTemp
+        if new:
+            k = len(SysTemp['photos'])
+        else:
+            k = 0
+        for i in range(len(Picdir)):
+            if new:
+                SysTemp['photos'].append(Picdir[i])
+                self.AddSysTempInfo()
+            imgobj = Image.open(Picdir[i])
+            imgobj.thumbnail((40, 40), Image.ANTIALIAS)
+            img = PhotoImage(imgobj)
+            btn = Button(self.toolbar, image=img, cursor='hand2')
+            # print(SysTemp['photos'],k+i)
+            handler = lambda savefile=(SysTemp['photos'][k + i],k+i): self.ShowInCanvas(savefile)
+            btn.config(relief=RAISED, bd=2, bg='white', command=handler)
+            btn.config(width=40, height=40)
+            btn.pack(side=LEFT)
+            self.toolPhotoDir.append((img,imgobj)) # why lack this sentence thumbnail don't show?
+
+    def ShowInCanvas(self,savefile):
+        global SysTemp
+        imagedir=savefile[0];num=savefile[1]
+        self.NowPicNum = num
+        ScrolledCanvas.Imagedir = imagedir
+        ScrolledCanvas.Rotate = SysTemp['Rotate'][self.NowPicNum]
+        # print(self.NowPicNum,SysTemp['Rotate'][self.NowPicNum],ScrolledCanvas.Rotate)
+        ScrolledCanvas.Open_Picture()
+
+    def AddPic(self):
+        NewPicdirlist = list(askopenfilenames(title='Select pictures',filetypes=[('jpg files', '.jpg'), ('png files', '.png'),('tif files','.tif')]))
+        NewPicdir = []
+        for Dir in NewPicdirlist:
+            if Dir not in SysTemp['photos']:
+                NewPicdir.append(Dir)
+        if len(NewPicdir) != 0:
+            self.AddPicButton(NewPicdir)
+
+    def AddSysTempInfo(self):
+        SysTemp['PointPosition'].append([])
+        SysTemp['CalcuData'].append([])
+        SysTemp['CtrlOnOff'].append([])
+        SysTemp['Rotate'].append(0)
 
 if __name__ == '__main__':
     root = Tk()
     root.title('ImageDBH')
+    root.config(bg='white')
     MenuBar = MenuBar(root)
     MenuBar.pack(side=TOP, fill=X)
     ScrolledCanvas = ScrolledCanvas(root)
-    ScrolledCanvas.Imagedir = r'D:/OneDrive/Documents/3 UNB/本科毕业设计/Picture/IMG_1547.JPG'
     ScrolledCanvas.pack(side=TOP)
+    global SysTemp, Projectdir
+    Projectdir=''
+    SysTemp = {'photos':[],'PointPosition':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[]}
+    SysTemp['photos']=[]
+    PicSelectMenu = PicSelectMenu(root)
+    PicSelectMenu.pack()
     root.mainloop()
+    '''Save project file when exit'''
+    if Projectdir != '':
+        f = open(Projectdir + '.dbh', 'w')
+        f.write(str(SysTemp))
+        f.close()
