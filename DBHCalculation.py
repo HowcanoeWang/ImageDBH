@@ -2,6 +2,7 @@
 
 def Calcu_TanTheta(RotateWH,Attribution):
     RotateX = RotateWH[0]
+    RotateY = RotateWH[1]
     PicSize0 = Attribution['Size'][0]
     FocalLength = Attribution['FocalLength']   # (mm)
     if RotateX == PicSize0:   # no rotate or rotate 180
@@ -13,7 +14,8 @@ def Calcu_TanTheta(RotateWH,Attribution):
     #  Theta = 1/2 FOV(Field of View)
     TanThetaX = 0.5 * FPX / FocalLength
     TanThetaY = 0.5 * FPY / FocalLength
-    return TanThetaX,TanThetaY
+    a = (FocalLength/FPY)*RotateY*45
+    return TanThetaX,TanThetaY,a
 
 def Judge_PointRealPosition(OneTreePoints):
     # -----------coordinate---------
@@ -97,51 +99,53 @@ def _Calcu_Scale(ReadyData):
     Yuc = ReadyData['UC'][1]
     Ydc = ReadyData['DC'][1]
     Ymc = ReadyData['COC'][1]     # centre of camera
-    YScale_C1 = 30/abs(Yuc-Ymc)    # (cm/pix)
-    YScale_C2 = 15/abs(Ydc-Ymc)    # (cm/pix)
+    #YScale_C1 = 30/abs(Yuc-Ymc)    # (cm/pix)
+    #YScale_C2 = 15/abs(Ydc-Ymc)    # (cm/pix)
     YScale_C3 = 45/abs(Yuc-Ydc)    # (cm/pix)
-    YScale_C = (YScale_C1 + YScale_C2 + YScale_C3)/3 # (cm/pix)
+    #YScale_C = (YScale_C1 + YScale_C2 + YScale_C3)/3 # (cm/pix)
+    YScale_C =YScale_C3
     # Calculate the edge point Y scale
     Yuel = ReadyData['UEL'][1]
     Yuer = ReadyData['UER'][1]
     Ydel = ReadyData['DEL'][1]
     Yder = ReadyData['DER'][1]
-    print(Yuer,Ymc)
-    YScale_EL1 = 30/abs(Yuel-Ymc)    # (cm/pix)
-    YScale_ER1 = 30/abs(Yuer-Ymc)    # (cm/pix)
-    YScale_EL2 = 15/abs(Ydel-Ymc)    # (cm/pix)
-    YScale_ER2 = 15/abs(Yder-Ymc)    # (cm/pix)
+    #YScale_EL1 = 30/abs(Yuel-Ymc)    # (cm/pix)
+    #YScale_ER1 = 30/abs(Yuer-Ymc)    # (cm/pix)
+    #YScale_EL2 = 15/abs(Ydel-Ymc)    # (cm/pix)
+    #YScale_ER2 = 15/abs(Yder-Ymc)    # (cm/pix)
     YScale_EL3 = 45/abs(Yuel-Ydel)   # (cm/pix)
     YScale_ER3 = 45/abs(Yuer-Yder)   # (cm/pix)
-    YScale_EL = (YScale_EL1 + YScale_EL2 + YScale_EL3)/3    # (cm/pix)
-    YScale_ER = (YScale_ER1 + YScale_ER2 + YScale_ER3)/3    # (cm/pix)
-    YScale_E = (YScale_EL + YScale_ER)/2
+    #YScale_EL = (YScale_EL1 + YScale_EL2 + YScale_EL3)/3    # (cm/pix)
+    #YScale_ER = (YScale_ER1 + YScale_ER2 + YScale_ER3)/3    # (cm/pix)
+    YScale_E = (YScale_EL3 + YScale_ER3)/2
     YScale = {'YE':YScale_E,'YC':YScale_C}
     return YScale
 
-def output(PointPosition):
-    Distance_out=[]
-    DBH_out=[]
+def output(PointPosition,CamInfo):
+    # Calcudata=[[No., Angle, Distance, DBH].
+    #            [No., Angle, Distance, DBH]...]
+    CalcuData = []
     for i in range(len(PointPosition)):
         #print(PointPosition[i],i)
-        TanX,TanY = Calcu_TanTheta(PointPosition[i][6],PointPosition[i][7])
+        #TanX,TanY,a = Calcu_TanTheta(PointPosition[i][6],PointPosition[i][7])
+        TanX, TanY, a = Calcu_TanTheta(PointPosition[i][6], CamInfo)
         Ready_Data = Judge_PointRealPosition(PointPosition[i])
         #print(Ready_Data)
         YScale = _Calcu_Scale(Ready_Data)
+        Ag = Calcu_Angle(Ready_Data)
         Dc = Calcu_Distance(Ready_Data,YScale['YC'],TanY)
         De = Calcu_Distance(Ready_Data,YScale['YE'],TanY)
         #print(Dc,De)
         DBH = Calcu_DBH(Ready_Data, YScale, Dc, De)
         #print(DBH)
-        Distance_out.append(Dc)
-        DBH_out.append(DBH)
-    CalcuData = [Distance_out,DBH_out]
+        CalcuData.append([i+1, str(Ag)+'°', str(round(Dc/100,2))+' m', str(round(DBH,2))+'cm'])
     return CalcuData
 
 if __name__ == '__main__':
     # test data
     PointPosition = [
         [[940.0, 1295.0], [1070.0, 1296.0], [1005.0, 1291.0], [952.0, 1486.0], [1117.0, 1483.0], [1035.0, 1488.0],
-         [1944, 2592], {'FocalLength': 5.8, 'FPY': 4.2672, 'Model': 'Canon PowerShot SD430 WIRELESS', 'FPX': 5.715,
-                        'Size': (2592, 1944)}]]
-    output(PointPosition)
+         [1944, 2592]]]
+    CamInfo={'FocalLength': 5.8, 'FPY': 4.2672, 'Model': 'Canon PowerShot SD430 WIRELESS', 'FPX': 5.715,
+                        'Size': (2592, 1944)}
+    output(PointPosition,CamInfo)

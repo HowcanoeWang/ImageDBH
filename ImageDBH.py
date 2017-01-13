@@ -2,6 +2,7 @@
 import traceback
 from tkinter.messagebox import *
 from tkinter.filedialog import *
+from tkinter import ttk
 from PIL import ExifTags
 from PIL.ImageTk import Image
 from PIL.ImageTk import PhotoImage
@@ -15,6 +16,7 @@ class ScrolledCanvas(Frame):
     PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[], 'DP1': [],'DP2':[], 'DC': [], 'DL':[],'Comb':[]}
     PhotoSize = []
     Rotate = 0 # []+(逆时针90度), -(顺时针90度)
+    NewMove = False
     '''DataFrame
     Not need to record the position because can get the point position by :canvas.coords(ID)
     coords(i, new_xy) # change coordinates
@@ -155,6 +157,7 @@ class ScrolledCanvas(Frame):
                 #print(self.PointNum)
                 global SysTemp
                 SysTemp['PointPosition'][PicSelectMenu.NowPicNum] = self.Num2Position()
+                PicSelectMenu.ShowInTable()
                 #print(SysTemp['PointPosition'])
 
     def onMovePoint(self,event):
@@ -165,6 +168,7 @@ class ScrolledCanvas(Frame):
             ISIN = self.isin(IDtouched[0])
             if len(IDtouched)==1 and ISIN[0]:
                 self.canvas.coords(IDtouched, (x-5,y-5,x+5,y+5))
+                self.NewMove = True
                 Comb = self.PointNum['Comb']
                 if ISIN != -1:
                     global SysTemp
@@ -180,7 +184,6 @@ class ScrolledCanvas(Frame):
                         self.Create_Curveline(self.PointNum['Comb'][i][1],lineID)
 
     def Create_Curveline(self,ID,lineID=None):
-        '''
         # create_line has three points to draw curve line
         # but if these three points is P_baseL, P_baseR, and P_top
         # the curve line would scross P_centre rather than P_top
@@ -190,7 +193,6 @@ class ScrolledCanvas(Frame):
         #    \   (P)_c  /
         #     \       /
         #     (P)_top
-        '''
         ID_1=ID[0];ID_2=ID[1];ID_C=ID[2]
         P1 = self.ID2Position(ID_1)
         P2 = self.ID2Position(ID_2)
@@ -249,7 +251,6 @@ class ScrolledCanvas(Frame):
         for j in range(len(Position)):
             P4Use = Position[j][:6]
             i = self.TreeNum
-            print(P4Use)
             # P4Use = [[UP1.x, UP1.y], [UP2.x, UP2.y], [UC.x, UC.y], [DP1.x, DP1.y], [DP2.x, DP2.y], [DC.x, DC.y]]
             # Draw points - UP1
             ID_p1 = self.Create_Point(P4Use[0][0], P4Use[0][1], 'blue')
@@ -292,8 +293,21 @@ class ScrolledCanvas(Frame):
             self.TreeNum += 1
 
     def Num2Position(self,event=None):
-        # UP1 | UP2 | UC | DP1 | DP2 | DC | PhotoSize + PhotoInfo
-        img = Image.open(self.Imagedir)
+        # UP1 | UP2 | UC | DP1 | DP2 | DC | PhotoSize
+
+        PointPosition = []
+        for i in range(len(self.PointNum['DC'])):
+            PointPosition.append([self.ID2Position(self.PointNum['UP1'][i]),
+                                  self.ID2Position(self.PointNum['UP2'][i]),
+                                  self.ID2Position(self.PointNum['UC'][i]),
+                                  self.ID2Position(self.PointNum['DP1'][i]),
+                                  self.ID2Position(self.PointNum['DP2'][i]),
+                                  self.ID2Position(self.PointNum['DC'][i]),
+                                  self.PhotoSize])
+        # print(PointPosition)
+        return PointPosition
+
+    def getCamInfo(self,event=None, img=Image.open(Imagedir)):
         exif_human = {ExifTags.TAGS[k]: v for k, v in img._getexif().items() if k in ExifTags.TAGS}
         # XResolution = exif_human['XResolution'][0]
         # YResolution = exif_human['YResolution'][0]
@@ -315,19 +329,7 @@ class ScrolledCanvas(Frame):
                 'FPY':FPY,
                 'Model': exif_human['Model'],
                 }
-        # print(info)
-        PointPosition = []
-        for i in range(len(self.PointNum['DC'])):
-            PointPosition.append([self.ID2Position(self.PointNum['UP1'][i]),
-                                  self.ID2Position(self.PointNum['UP2'][i]),
-                                  self.ID2Position(self.PointNum['UC'][i]),
-                                  self.ID2Position(self.PointNum['DP1'][i]),
-                                  self.ID2Position(self.PointNum['DP2'][i]),
-                                  self.ID2Position(self.PointNum['DC'][i]),
-                                  self.PhotoSize,
-                                  info])
-        # print(PointPosition)
-        return PointPosition
+        return info
 
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
@@ -359,13 +361,13 @@ class MenuBar(Frame):
         edit.add_separator()
         ebutton.config(menu=edit, bg='white')
 
-        cbutton = Menubutton(menubar, text='Calculate', underline=0,state=DISABLED)
-        cbutton.pack(side=LEFT)
-        calcu = Menu(cbutton, tearoff=False)
-        calcu.add_command(label='Distance', command=self.Distance, underline=0)
-        calcu.add_command(label='Angle', command=self.notdone,underline=0)
-        calcu.add_command(label='DBH', command=self.notdone, underline=0)
-        cbutton.config(menu=calcu, bg='white')
+        #cbutton = Menubutton(menubar, text='Calculate', underline=0,state=DISABLED)
+        #cbutton.pack(side=LEFT)
+        #calcu = Menu(cbutton, tearoff=False)
+        #calcu.add_command(label='Distance', command=self.Distance, underline=0)
+        #calcu.add_command(label='Angle', command=self.notdone,underline=0)
+        #calcu.add_command(label='DBH', command=self.notdone, underline=0)
+        #cbutton.config(menu=calcu, bg='white')
 
         submenu = Menu(edit, tearoff=False)
         submenu.add_command(label='Clockwise 90°', command=self.cw90,underline=0)
@@ -373,7 +375,7 @@ class MenuBar(Frame):
         submenu.add_command(label='Clockwise 180°', command=self.cw180, underline=0)
         edit.add_cascade(label='Rotate image', menu=submenu,underline=0)
 
-        self.cbutton = cbutton
+        #self.cbutton = cbutton
         self.ebutton = ebutton
         self.fbutton = fbutton
 
@@ -404,12 +406,6 @@ class MenuBar(Frame):
         SysTemp['Rotate'][PicSelectMenu.NowPicNum] = ScrolledCanvas.Rotate
         ScrolledCanvas.Open_Picture()
 
-    def Distance(self):
-        PointPosition = ScrolledCanvas.Num2Position()
-        data=DBHCalculation.output(PointPosition)
-        msg = 'Distance=' + str(data[0])+ '\n' + 'DBH=' + str(data[1])
-        showinfo(title='results',message=msg)
-
     def NewProj(self):
         global Projectdir,SysTemp
         Projectdir = asksaveasfilename(title='New project', filetypes=[('DBH project', '.dbh')])
@@ -417,9 +413,9 @@ class MenuBar(Frame):
             if Projectdir[-4:]=='.dbh':
                 Projectdir=Projectdir[:-4]
                 #print(Projectdir)
-            SysTemp = {'photos': [], 'PointPosition': [], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
+            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
             PicSelectMenu.AddPicbtn.config(state=NORMAL)
-            self.cbutton.config(state=NORMAL)
+            #self.cbutton.config(state=NORMAL)
             self.ebutton.config(state=NORMAL)
 
     def OpenProj(self):
@@ -428,7 +424,7 @@ class MenuBar(Frame):
         Projectdir = Projectdir[:-4]
         #print(Projectdir)
         if Projectdir != '':
-            SysTemp = {'photos': [], 'PointPosition': [], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
+            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
             f = open(Projectdir + '.dbh', 'r')
             SysTemp = eval(f.read())
             f.close()
@@ -453,11 +449,12 @@ class MenuBar(Frame):
                         del SysTemp['PointPosition'][line]
                         del SysTemp['Rotate'][line]
                         del SysTemp['CalcuData'][line]
+                        del SysTemp['CamInfo'][line]
                         PicOk = True
             if PicOk:
                 PicSelectMenu.AddPicButton(SysTemp['photos'],new=False)
                 PicSelectMenu.AddPicbtn.config(state=NORMAL)
-                self.cbutton.config(state=NORMAL)
+                #self.cbutton.config(state=NORMAL)
                 self.ebutton.config(state=NORMAL)
                 self.fbutton.config(state=DISABLED)
 
@@ -470,15 +467,22 @@ class MenuBar(Frame):
         showerror('Error!',exception_string)
     sys.excepthook = my_except_hook
 
+
 class PicSelectMenu(Frame):
 
     def __init__(self,parent=None):
         Frame.__init__(self,parent)
-        AddPicbtn = Button(parent,text='Add\nImages', command=self.AddPic,bg='white',state=DISABLED)
-        AddPicbtn.pack(side=RIGHT, fill=Y)
-        toolbar = Frame(parent, relief=SUNKEN, bd=2)
+
+        MainFrame = Frame(parent, bg='white')
+        MainFrame.pack(side=BOTTOM, fill=X)
+
+        toolbar = Frame(MainFrame, relief=SUNKEN, bd=2)
         toolbar.config(height=45, bg='white')
-        toolbar.pack(side=BOTTOM, fill=X)
+        toolbar.pack(side=LEFT, fill=X)
+        AddPicbtn = Button(MainFrame, text='Add\nImages', command=self.AddPic, bg='white', state=DISABLED)
+        AddPicbtn.pack(side=RIGHT, fill=Y)
+
+
         self.toolbar=toolbar
         self.AddPicbtn = AddPicbtn
         self.toolPhotoDir = []
@@ -501,6 +505,7 @@ class PicSelectMenu(Frame):
             btn = Button(self.toolbar, image=img, cursor='hand2')
             # print(SysTemp['photos'],k+i)
             handler = lambda savefile=(SysTemp['photos'][k + i],k+i): self.ShowInCanvas(savefile)
+            SysTemp['CamInfo'][k+i] = ScrolledCanvas.getCamInfo(img=imgobj)
             btn.config(relief=RAISED, bd=2, bg='white', command=handler)
             btn.config(width=40, height=40)
             btn.pack(side=LEFT)
@@ -514,9 +519,39 @@ class PicSelectMenu(Frame):
         ScrolledCanvas.Rotate = SysTemp['Rotate'][self.NowPicNum]
         #print(self.NowPicNum,SysTemp['Rotate'][self.NowPicNum],ScrolledCanvas.Rotate)
         ScrolledCanvas.Open_Picture()
+        self.ShowInTable()
+
+    def ShowInTable(self):
+        global Systemp
+        # show Caminfo
+        CamInfo = SysTemp['CamInfo'][self.NowPicNum]
+        TableInfo.Ml.delete('0', END)
+        TableInfo.Ml.insert(0, CamInfo['Model'])
+        TableInfo.FL.delete('0', END)
+        TableInfo.FL.insert(0, str(round(CamInfo['FocalLength'],2)))
+        TableInfo.FX.delete('0', END)
+        TableInfo.FX.insert(0, str(round(CamInfo['FPX'],2)))
+        TableInfo.FY.delete('0', END)
+        TableInfo.FY.insert(0, str(round(CamInfo['FPY'],2)))
+        # get data
+        if len(SysTemp['CalcuData'][self.NowPicNum]) != len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.NewMove:
+            PointPosition = ScrolledCanvas.Num2Position()
+            data = DBHCalculation.output(PointPosition, CamInfo)
+            SysTemp['CalcuData'][self.NowPicNum] = data
+            ScrolledCanvas.NewMove = False
+        else:
+            data = SysTemp['CalcuData'][self.NowPicNum]
+        # show in table
+        TableInfo.clearTree()
+        for values in data:
+            #print(values)
+            TableInfo.Tree.insert('', 'end', values=values)
 
     def AddPic(self):
-        NewPicdirlist = list(askopenfilenames(title='Select pictures',filetypes=[('jpg files', '.jpg'), ('png files', '.png'),('tif files','.tif')]))
+        NewPicdirlist = list(askopenfilenames(title='Select pictures',
+                                              filetypes=[('jpg files', '.jpg'),
+                                                         ('png files', '.png'),
+                                                         ('tif files','.tif')]))
         NewPicdir = []
         for Dir in NewPicdirlist:
             if Dir not in SysTemp['photos']:
@@ -526,6 +561,7 @@ class PicSelectMenu(Frame):
 
     def AddSysTempInfo(self):
         SysTemp['PointPosition'].append([])
+        SysTemp['CamInfo'].append([])
         SysTemp['CalcuData'].append([])
         SysTemp['CtrlOnOff'].append([])
         SysTemp['Rotate'].append(0)
@@ -535,8 +571,63 @@ class PicSelectMenu(Frame):
         showerror('Error!',exception_string)
     sys.excepthook = my_except_hook
 
+class TableInfo(Frame):
+    LabIndex = ['Camera Model', 'Focal Length (mm)', 'Focal X (mm)', 'Focal Y (mm)']
+    def __init__(self, parent=None):
+        Frame.__init__(self, parent)
+        MainFrame = Frame(parent,bg='white')
+        MainFrame.pack(fill=BOTH, expand=YES)
+
+        # CamInfoFrame panel
+        CamInfoFrame = Frame(MainFrame)
+        CamInfoFrame.pack(side=TOP, fill=BOTH, expand=YES)
+        # Model
+        lab = Label(CamInfoFrame, text=self.LabIndex[0], relief=RIDGE, bg='white')
+        self.Ml = Entry(CamInfoFrame, text='', relief=SUNKEN, bg='pink', justify='center')
+        lab.pack(side=TOP, expand=YES, fill=BOTH)
+        self.Ml.pack(side=TOP, expand=YES, fill=BOTH)
+        # FocalLength
+        lab = Label(CamInfoFrame, text=self.LabIndex[1], relief=RIDGE, bg='white')
+        self.FL = Entry(CamInfoFrame, text='', relief=SUNKEN, bg='pink', justify='center')
+        lab.pack(side=TOP, expand=YES, fill=BOTH)
+        self.FL.pack(side=TOP, expand=YES, fill=BOTH)
+        # FocalX
+        lab = Label(CamInfoFrame, text=self.LabIndex[2], relief=RIDGE, bg='white')
+        self.FX = Entry(CamInfoFrame, text='', relief=SUNKEN, bg='pink', justify='center')
+        lab.pack(side=TOP, expand=YES, fill=BOTH)
+        self.FX.pack(side=TOP, expand=YES, fill=BOTH)
+        # FocalY
+        lab = Label(CamInfoFrame, text=self.LabIndex[3], relief=RIDGE, bg='white')
+        self.FY = Entry(CamInfoFrame, text='', relief=SUNKEN, bg='pink', justify='center')
+        lab.pack(side=TOP, expand=YES, fill=BOTH)
+        self.FY.pack(side=TOP, expand=YES, fill=BOTH)
+
+        # Result Panel
+        Tree = ttk.Treeview(MainFrame, show="headings", columns=('No.', 'Angle', 'Distance', 'DBH'))
+        Tree['columns'] = ('No.', 'Angle', 'Distance', 'DBH')
+
+        Tree.column('No.', width=30, anchor='center')
+        Tree.column('Angle', width=50, anchor='center')
+        Tree.column('Distance', width=60, anchor='center')
+        Tree.column('DBH', width=60, anchor='center')
+        Tree.heading('No.', text='No.')
+        Tree.heading('Angle', text='Angle')
+        Tree.heading('Distance', text='Distance')
+        Tree.heading('DBH', text='DBH')
+        Refresh = Label(MainFrame, text='Click pic button to fresh table', bg='white')
+        Refresh.pack(side=BOTTOM, fill=X, expand=YES)
+        Tree.pack(side=BOTTOM, fill=BOTH, expand=YES)
+
+        self.Tree = Tree
+
+    def clearTree(self):
+        TableInfo.Tree.delete(*TableInfo.Tree.get_children())
+
 if __name__ == '__main__':
     # show trackback in errormessage
+    global SysTemp, Projectdir
+    Projectdir=''
+    SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[]}
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
         showerror('Error!',exception_string)
@@ -547,13 +638,12 @@ if __name__ == '__main__':
     root.config(bg='white')
     MenuBar = MenuBar(root)
     MenuBar.pack(side=TOP, fill=X)
-    ScrolledCanvas = ScrolledCanvas(root)
-    ScrolledCanvas.pack(side=TOP)
-    global SysTemp, Projectdir
-    Projectdir=''
-    SysTemp = {'photos':[],'PointPosition':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[]}
     PicSelectMenu = PicSelectMenu(root)
-    PicSelectMenu.pack()
+    PicSelectMenu.pack(side=BOTTOM)
+    ScrolledCanvas = ScrolledCanvas(root)
+    ScrolledCanvas.pack(side=LEFT)
+    TableInfo = TableInfo(root)
+    TableInfo.pack(side=RIGHT)
     root.mainloop()
     # Save project file when exit
     if Projectdir != '':    # if user do not choose any project, exist without writing project file
