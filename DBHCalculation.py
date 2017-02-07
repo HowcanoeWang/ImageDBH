@@ -121,7 +121,7 @@ def _Calcu_Scale(ReadyData):
     YScale = {'YE':YScale_E,'YC':YScale_C}
     return YScale
 
-def output(PointPosition,CamInfo):
+def output(PointPosition, CamInfo, TreeNo):
     # Calcudata=[[No., Angle, Distance, DBH].
     #            [No., Angle, Distance, DBH]...]
     CalcuData = []
@@ -138,7 +138,7 @@ def output(PointPosition,CamInfo):
         #print(Dc,De)
         DBH = Calcu_DBH(Ready_Data, YScale, Dc, De)
         #print(DBH)
-        CalcuData.append([i+1, str(Ag)+'°', str(round(Dc/100,2))+' m', str(round(DBH,2))+'cm'])
+        CalcuData.append([TreeNo[i], str(Ag)+'°', str(round(Dc/100,2))+'m', str(round(DBH,2))+'cm'])
     return CalcuData
 
 if __name__ == '__main__':

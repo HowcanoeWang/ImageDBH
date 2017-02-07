@@ -1,7 +1,9 @@
 # -*- coding:UTF-8 -*-
 import traceback
+import xlwt
 from tkinter.messagebox import *
 from tkinter.filedialog import *
+from tkinter.simpledialog import *
 from tkinter import ttk
 from PIL import ExifTags
 from PIL.ImageTk import Image
@@ -10,13 +12,14 @@ import DBHCalculation
 
 class ScrolledCanvas(Frame):
     ##
-    Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
+    #Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
+    Imagedir = ''
     NewTree_OnOff = -1
     TreeNum = 0
     PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[], 'DP1': [],'DP2':[], 'DC': [], 'DL':[],'Comb':[]}
     PhotoSize = []
     Rotate = 0 # []+(逆时针90度), -(顺时针90度)
-    NewMove = False
+    ISIN = False
     '''DataFrame
     Not need to record the position because can get the point position by :canvas.coords(ID)
     coords(i, new_xy) # change coordinates
@@ -41,7 +44,9 @@ class ScrolledCanvas(Frame):
         canvas.config(width=800, height=600, bg='white',bd=1)
         canvas.config(highlightthickness=0)
         canvas.bind('<ButtonPress-1>', self.onPutPoint)
-        canvas.bind('<B1-Motion>',self.onMovePoint)
+        canvas.bind('<B1-Motion>', self.onMovePoint)
+        canvas.bind('<ButtonRelease-1>', self.LooseMouse)
+
         #canvas.bind('<Double-1>', self.Num2Position)
         #canvas.bind('<Double-2>', self.Open_Picture)
         #canvas.bind('<Double-3>',self.ClearCanvas)
@@ -58,7 +63,6 @@ class ScrolledCanvas(Frame):
         canvas.pack(side=TOP, expand=YES,fill=BOTH)
 
         self.canvas = canvas
-        # self.Open_Picture()
 
     def Open_Picture(self,event=None):
         self.ClearCanvas()
@@ -161,27 +165,51 @@ class ScrolledCanvas(Frame):
                 #print(SysTemp['PointPosition'])
 
     def onMovePoint(self,event):
-        if self.NewTree_OnOff == -1:# not in add point mode
+        # not in add point mode(make sure this click is move points rather than add points)
+        if self.NewTree_OnOff == -1:
             x = self.canvas.canvasx(event.x)
             y = self.canvas.canvasy(event.y)
-            IDtouched = event.widget.find_closest(x,y)
-            ISIN = self.isin(IDtouched[0])
-            if len(IDtouched)==1 and ISIN[0]:
-                self.canvas.coords(IDtouched, (x-5,y-5,x+5,y+5))
-                self.NewMove = True
+            # Select a new point, initialise self.ISIN
+            if self.ISIN == False:
+                idtouched = event.widget.find_closest(x, y)
+                # if the canvas is empty(just open without any photo), IDtouched == (), function self.isin goes error
+                if idtouched:
+                    isin = self.isin(idtouched[0])
+                    # if selected point belongs to PointNum,
+                    #    isin returns(Ture,PointKind[int], pointLine[int],IDtouched)
+                    #    e.g. ISIN = (True,1,3,2)
+                    # else not in
+                    #    ISIN returns (False,-1,-1,2)
+                    if isin[0]:
+                        self.ISIN = isin
+            # Do not release mouse, keep moving
+            else:
+                self.canvas.coords(self.ISIN[3], (x - 5, y - 5, x + 5, y + 5))  # set selected point position == mouse position
                 Comb = self.PointNum['Comb']
-                if ISIN != -1:
-                    global SysTemp
-                    SysTemp['PointPosition'][PicSelectMenu.NowPicNum][ISIN[1]][ISIN[2]]=[x,y] # change moved point position in SysTemp file
+                #print(Comb)
                 for i in range(len(Comb)):
-                    if IDtouched[0] in Comb[i][0]: # move points of up points
+                    # move points are up points
+                    if self.ISIN[3] in Comb[i][0]:
                         lineID = self.PointNum['UL'][i]
                         # move line
                         self.Create_Curveline(self.PointNum['Comb'][i][0],lineID)
-                    if IDtouched[0] in Comb[i][1]: # move points of down points
+                    # move points are down points
+                    if self.ISIN[3] in Comb[i][1]:
                         lineID = self.PointNum['DL'][i]
                         # move line
                         self.Create_Curveline(self.PointNum['Comb'][i][1],lineID)
+
+    def LooseMouse(self,event):
+        global SysTemp
+        if self.ISIN:
+            if self.ISIN != -1:
+                x = self.canvas.canvasx(event.x)
+                y = self.canvas.canvasy(event.y)
+                # change moved point position in SysTemp file
+                SysTemp['PointPosition'][PicSelectMenu.NowPicNum][self.ISIN[1]][self.ISIN[2]] = [x,y]
+            PicSelectMenu.ShowInTable()
+            self.ISIN = False
+
 
     def Create_Curveline(self,ID,lineID=None):
         # create_line has three points to draw curve line
@@ -245,7 +273,7 @@ class ScrolledCanvas(Frame):
                 isin = True
                 PointKind = ['UP1','UP2', 'UC', 'DP1','DP2', 'DC'].index(i) # record the point kind in order to change SysTemp by mouse moving function
                 PointLine = self.PointNum[i].index(ID)
-        return (isin,PointLine,PointKind)
+        return (isin,PointLine,PointKind,ID)
 
     def Position2Num(self,Position):
         for j in range(len(Position)):
@@ -307,7 +335,7 @@ class ScrolledCanvas(Frame):
         # print(PointPosition)
         return PointPosition
 
-    def getCamInfo(self,event=None, img=Image.open(Imagedir)):
+    def getCamInfo(self,img,event=None):#img=Image.open(Imagedir)
         exif_human = {ExifTags.TAGS[k]: v for k, v in img._getexif().items() if k in ExifTags.TAGS}
         # XResolution = exif_human['XResolution'][0]
         # YResolution = exif_human['YResolution'][0]
@@ -369,13 +397,20 @@ class MenuBar(Frame):
         #calcu.add_command(label='DBH', command=self.notdone, underline=0)
         #cbutton.config(menu=calcu, bg='white')
 
+        cbutton = Menubutton(menubar, text='Export', underline=0, state=DISABLED)
+        cbutton.pack(side=LEFT)
+        export = Menu(cbutton, tearoff=False)
+        export.add_command(label='picture', command=self.notdone, underline=0)
+        export.add_command(label='excel', command=self.export_excel, underline=0)
+        cbutton.config(menu=export, bg='white')
+
         submenu = Menu(edit, tearoff=False)
         submenu.add_command(label='Clockwise 90°', command=self.cw90,underline=0)
         submenu.add_command(label='Anti-Clockwise 90°', command=self.acw90, underline=0)
         submenu.add_command(label='Clockwise 180°', command=self.cw180, underline=0)
         edit.add_cascade(label='Rotate image', menu=submenu,underline=0)
 
-        #self.cbutton = cbutton
+        self.cbutton = cbutton
         self.ebutton = ebutton
         self.fbutton = fbutton
 
@@ -383,7 +418,13 @@ class MenuBar(Frame):
         showerror('Not implemented','Not yet available')
 
     def Add_points_on(self):
-        ScrolledCanvas.NewTree_OnOff=0    # activate left click to add point
+        global SysTemp
+        TreeNo = askstring('Notice', 'Print Tree number')
+        if TreeNo != None:
+            if TreeNo == '':
+                TreeNo = str(ScrolledCanvas.TreeNum+1)
+            SysTemp['TreeNo.'][PicSelectMenu.NowPicNum].append(TreeNo)
+            ScrolledCanvas.NewTree_OnOff=0    # activate left click to add point
 
     def cw90(self):
         ScrolledCanvas.Rotate += 90
@@ -413,10 +454,12 @@ class MenuBar(Frame):
             if Projectdir[-4:]=='.dbh':
                 Projectdir=Projectdir[:-4]
                 #print(Projectdir)
-            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
+            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [],
+                       'CtrlOnOff': [], 'Rotate': [], 'TreeNo.':[]}
             PicSelectMenu.AddPicbtn.config(state=NORMAL)
-            #self.cbutton.config(state=NORMAL)
+            self.cbutton.config(state=NORMAL)
             self.ebutton.config(state=NORMAL)
+            self.fbutton.config(state=DISABLED)
 
     def OpenProj(self):
         global Projectdir,SysTemp
@@ -424,7 +467,8 @@ class MenuBar(Frame):
         Projectdir = Projectdir[:-4]
         #print(Projectdir)
         if Projectdir != '':
-            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [], 'CtrlOnOff': [], 'Rotate': []}
+            SysTemp = {'photos': [], 'PointPosition': [], 'CamInfo':[], 'CalcuData': [],
+                       'CtrlOnOff': [], 'Rotate': [], 'TreeNo.':[]}
             f = open(Projectdir + '.dbh', 'r')
             SysTemp = eval(f.read())
             f.close()
@@ -450,11 +494,12 @@ class MenuBar(Frame):
                         del SysTemp['Rotate'][line]
                         del SysTemp['CalcuData'][line]
                         del SysTemp['CamInfo'][line]
+                        del SysTemp['TreeNo.'][line]
                         PicOk = True
             if PicOk:
                 PicSelectMenu.AddPicButton(SysTemp['photos'],new=False)
                 PicSelectMenu.AddPicbtn.config(state=NORMAL)
-                #self.cbutton.config(state=NORMAL)
+                self.cbutton.config(state=NORMAL)
                 self.ebutton.config(state=NORMAL)
                 self.fbutton.config(state=DISABLED)
 
@@ -462,6 +507,36 @@ class MenuBar(Frame):
         ans = askokcancel('Verfy exit', "Really quit?")
         if ans:
             Frame.quit(self)
+
+    def export_excel(self):
+        global SysTemp
+        Calcu_Data = SysTemp['CalcuData']
+        savepath = asksaveasfilename(title='export data', filetypes=[('excelfile', '.xls')])
+        print(savepath)
+        if savepath != '':
+            if savepath[-4:] == '.xls':
+                savepath = savepath[:-4]
+            wb = xlwt.Workbook(encoding='utf-8')
+            i = 1
+            for onepic in Calcu_Data:
+                worksheet = wb.add_sheet(str(i))
+                worksheet.write(0, 0, label='treenum')
+                worksheet.write(0, 1, label='angle(°)')
+                worksheet.write(0, 2, label='distance(m)')
+                worksheet.write(0, 3, label='DBH(cm)')
+                t = 1
+                for onetree in onepic:
+                    worksheet.write(t, 0, label=onetree[0])
+                    worksheet.write(t, 1, label=float(onetree[1][:-1]))
+                    worksheet.write(t, 2, label=float(onetree[2][:-1]))
+                    worksheet.write(t, 3, label=float(onetree[3][:-2]))
+                    t += 1
+                i += 1
+
+            wb.save(savepath + '.xls')
+            print('done')
+
+
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
         showerror('Error!',exception_string)
@@ -525,6 +600,7 @@ class PicSelectMenu(Frame):
         global Systemp
         # show Caminfo
         CamInfo = SysTemp['CamInfo'][self.NowPicNum]
+        TreeNo = SysTemp['TreeNo.'][self.NowPicNum]
         TableInfo.Ml.delete('0', END)
         TableInfo.Ml.insert(0, CamInfo['Model'])
         TableInfo.FL.delete('0', END)
@@ -534,17 +610,19 @@ class PicSelectMenu(Frame):
         TableInfo.FY.delete('0', END)
         TableInfo.FY.insert(0, str(round(CamInfo['FPY'],2)))
         # get data
-        if len(SysTemp['CalcuData'][self.NowPicNum]) != len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.NewMove:
+        # if number of trees in SysTem['CalcuData'] not equal to latest trees number
+        #    which means add a new tree
+        # or move a tree point
+        # then refresh information in table panel
+        if len(SysTemp['CalcuData'][self.NowPicNum]) != len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.ISIN:
             PointPosition = ScrolledCanvas.Num2Position()
-            data = DBHCalculation.output(PointPosition, CamInfo)
+            data = DBHCalculation.output(PointPosition, CamInfo, TreeNo)
             SysTemp['CalcuData'][self.NowPicNum] = data
-            ScrolledCanvas.NewMove = False
         else:
             data = SysTemp['CalcuData'][self.NowPicNum]
         # show in table
         TableInfo.clearTree()
         for values in data:
-            #print(values)
             TableInfo.Tree.insert('', 'end', values=values)
 
     def AddPic(self):
@@ -565,6 +643,7 @@ class PicSelectMenu(Frame):
         SysTemp['CalcuData'].append([])
         SysTemp['CtrlOnOff'].append([])
         SysTemp['Rotate'].append(0)
+        SysTemp['TreeNo.'].append([])
 
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
@@ -606,7 +685,7 @@ class TableInfo(Frame):
         Tree = ttk.Treeview(MainFrame, show="headings", columns=('No.', 'Angle', 'Distance', 'DBH'))
         Tree['columns'] = ('No.', 'Angle', 'Distance', 'DBH')
 
-        Tree.column('No.', width=30, anchor='center')
+        Tree.column('No.', width=50, anchor='center')
         Tree.column('Angle', width=50, anchor='center')
         Tree.column('Distance', width=60, anchor='center')
         Tree.column('DBH', width=60, anchor='center')
@@ -627,7 +706,7 @@ if __name__ == '__main__':
     # show trackback in errormessage
     global SysTemp, Projectdir
     Projectdir=''
-    SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[]}
+    SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[],'TreeNo.':[]}
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
         showerror('Error!',exception_string)
