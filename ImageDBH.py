@@ -11,8 +11,6 @@ from PIL.ImageTk import PhotoImage
 import DBHCalculation
 
 class ScrolledCanvas(Frame):
-    ##
-    #Imagedir = r'D:\OneDrive\Program\Python\UNB\IMG_1545.JPG'
     Imagedir = ''
     NewTree_OnOff = -1
     TreeNum = 0
@@ -76,7 +74,6 @@ class ScrolledCanvas(Frame):
         elif self.Rotate == 270 or self.Rotate == -90:
             photo = PhotoImage(image.transpose(Image.ROTATE_90))
         else:
-            # photo = ImageTk.PhotoImage(image)
             photo = PhotoImage(image)
         self.photo = photo
         self.canvas.create_image(0, 0, image=photo, anchor=NW)
@@ -159,8 +156,10 @@ class ScrolledCanvas(Frame):
                 # Add tree Number
                 self.TreeNum += 1
                 #print(self.PointNum)
-                global SysTemp
+                global SysTemp,TreeNo
+                # save points and tree number information
                 SysTemp['PointPosition'][PicSelectMenu.NowPicNum] = self.Num2Position()
+                SysTemp['TreeNo.'][PicSelectMenu.NowPicNum].append(TreeNo)
                 PicSelectMenu.ShowInTable()
                 #print(SysTemp['PointPosition'])
 
@@ -322,7 +321,6 @@ class ScrolledCanvas(Frame):
 
     def Num2Position(self,event=None):
         # UP1 | UP2 | UC | DP1 | DP2 | DC | PhotoSize
-
         PointPosition = []
         for i in range(len(self.PointNum['DC'])):
             PointPosition.append([self.ID2Position(self.PointNum['UP1'][i]),
@@ -332,7 +330,6 @@ class ScrolledCanvas(Frame):
                                   self.ID2Position(self.PointNum['DP2'][i]),
                                   self.ID2Position(self.PointNum['DC'][i]),
                                   self.PhotoSize])
-        # print(PointPosition)
         return PointPosition
 
     def getCamInfo(self,img,event=None):#img=Image.open(Imagedir)
@@ -418,12 +415,11 @@ class MenuBar(Frame):
         showerror('Not implemented','Not yet available')
 
     def Add_points_on(self):
-        global SysTemp
+        global SysTemp,TreeNo # set tree number as global to save it in the end of add points in ScrolledCanvas.onAddPoint
         TreeNo = askstring('Notice', 'Print Tree number')
         if TreeNo != None:
             if TreeNo == '':
                 TreeNo = str(ScrolledCanvas.TreeNum+1)
-            SysTemp['TreeNo.'][PicSelectMenu.NowPicNum].append(TreeNo)
             ScrolledCanvas.NewTree_OnOff=0    # activate left click to add point
 
     def cw90(self):
@@ -526,7 +522,7 @@ class MenuBar(Frame):
                 worksheet.write(0, 3, label='DBH(cm)')
                 t = 1
                 for onetree in onepic:
-                    worksheet.write(t, 0, label=onetree[0])
+                    worksheet.write(t, 0, label=str(onetree[0]))
                     worksheet.write(t, 1, label=float(onetree[1][:-1]))
                     worksheet.write(t, 2, label=float(onetree[2][:-1]))
                     worksheet.write(t, 3, label=float(onetree[3][:-2]))
@@ -592,7 +588,6 @@ class PicSelectMenu(Frame):
         self.NowPicNum = num
         ScrolledCanvas.Imagedir = imagedir
         ScrolledCanvas.Rotate = SysTemp['Rotate'][self.NowPicNum]
-        #print(self.NowPicNum,SysTemp['Rotate'][self.NowPicNum],ScrolledCanvas.Rotate)
         ScrolledCanvas.Open_Picture()
         self.ShowInTable()
 
@@ -683,6 +678,7 @@ class TableInfo(Frame):
 
         # Result Panel
         Tree = ttk.Treeview(MainFrame, show="headings", columns=('No.', 'Angle', 'Distance', 'DBH'))
+        Tree.bind("<Double-Button-1>", self.on_tree_select)
         Tree['columns'] = ('No.', 'Angle', 'Distance', 'DBH')
 
         Tree.column('No.', width=50, anchor='center')
@@ -693,7 +689,7 @@ class TableInfo(Frame):
         Tree.heading('Angle', text='Angle')
         Tree.heading('Distance', text='Distance')
         Tree.heading('DBH', text='DBH')
-        Refresh = Label(MainFrame, text='Click pic button to fresh table', bg='white')
+        Refresh = Label(MainFrame, text='Double click to change No.', bg='white')
         Refresh.pack(side=BOTTOM, fill=X, expand=YES)
         Tree.pack(side=BOTTOM, fill=BOTH, expand=YES)
 
@@ -701,6 +697,22 @@ class TableInfo(Frame):
 
     def clearTree(self):
         TableInfo.Tree.delete(*TableInfo.Tree.get_children())
+
+    def on_tree_select(self,event):
+        TreeNo = askstring('Notice', 'Change the tree number to')
+        if TreeNo != None:
+            if TreeNo == '':
+                showwarning(title='Warning!',message='Input should not be empty!')
+            else:
+                global SysTemp
+                curItem = self.Tree.focus()
+                curValue = list(self.Tree.item(curItem,'values'))
+                allValues = SysTemp['CalcuData'][PicSelectMenu.NowPicNum]
+                curNum = allValues.index(curValue)
+                # refresh tree number
+                SysTemp['CalcuData'][PicSelectMenu.NowPicNum][curNum][0] = TreeNo
+                SysTemp['TreeNo.'][PicSelectMenu.NowPicNum][curNum] = TreeNo
+                PicSelectMenu.ShowInTable()
 
 if __name__ == '__main__':
     # show trackback in errormessage

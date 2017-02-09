@@ -138,7 +138,7 @@ def output(PointPosition, CamInfo, TreeNo):
         #print(Dc,De)
         DBH = Calcu_DBH(Ready_Data, YScale, Dc, De)
         #print(DBH)
-        CalcuData.append([TreeNo[i], str(Ag)+'°', str(round(Dc/100,2))+'m', str(round(DBH,2))+'cm'])
+        CalcuData.append([str(TreeNo[i]), str(Ag)+'°', str(round(Dc/100,2))+'m', str(round(DBH,2))+'cm'])
     return CalcuData
 
 if __name__ == '__main__':
