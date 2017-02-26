@@ -1,0 +1,1 @@
+cd D:/pythonexe && pyinstaller -F -w D:\OneDrive\Program\Python\UNB\Thesis\ImageDBH\ImageDBH.py

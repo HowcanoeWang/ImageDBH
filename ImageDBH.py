@@ -705,13 +705,17 @@ class TableInfo(Frame):
                 showwarning(title='Warning!',message='Input should not be empty!')
             else:
                 global SysTemp
+                # get selected line data
                 curItem = self.Tree.focus()
                 curValue = list(self.Tree.item(curItem,'values'))
+                # get all values in the table
                 allValues = SysTemp['CalcuData'][PicSelectMenu.NowPicNum]
+                # get the line number of selected data
                 curNum = allValues.index(curValue)
                 # refresh tree number
                 SysTemp['CalcuData'][PicSelectMenu.NowPicNum][curNum][0] = TreeNo
                 SysTemp['TreeNo.'][PicSelectMenu.NowPicNum][curNum] = TreeNo
+                # refresh table
                 PicSelectMenu.ShowInTable()
 
 if __name__ == '__main__':
