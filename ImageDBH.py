@@ -468,30 +468,46 @@ class MenuBar(Frame):
             f = open(Projectdir + '.dbh', 'r')
             SysTemp = eval(f.read())
             f.close()
+
             # check if the pictures are exist, if exist load, if not, let user to re-link pictures
+            # **The best algorithm for this place is iteration check function and bulk replacement**
+            # **(no time for me to achieve it T_T)**
             PicOk = True
+            photo_folder_old = []
+            photo_folder_new = []
             for photo in SysTemp['photos']:
                 line = SysTemp['photos'].index(photo)
                 if not os.path.exists(photo):
                     PicOk =False
-                    ans = askyesno('Image missing', photo + '\n re-link it?')
-                    if ans:    # re-link
-                        newphoto = askopenfilename(title='Relink:    ' + photo,
-                                                   filetypes=[('Image file', photo[-4:])])
-                        if newphoto == '':
-                            showerror('Image missing', 'Could not link photos, please open other projects!')
-                        else:
-                            SysTemp['photos'][line] = newphoto
-                            PicOk = True
-                    else:    # not relink -> delete missing message
-                        del SysTemp['photos'][line]
-                        del SysTemp['CtrlOnOff'][line]
-                        del SysTemp['PointPosition'][line]
-                        del SysTemp['Rotate'][line]
-                        del SysTemp['CalcuData'][line]
-                        del SysTemp['CamInfo'][line]
-                        del SysTemp['TreeNo.'][line]
+                    # the next photo path is same to former successfully replaced photo path
+                    if photo_folder_new and photo_folder_old == photo[:photo.rindex('/')]:
+                        newphoto = photo_folder_new + '/' + photo[photo.rindex('/'):]
+                        SysTemp['photos'][line] = newphoto
+                        print(newphoto)
                         PicOk = True
+                    # this photo is the first picture (photo_folder_old==[])
+                    # or this photo's folder is different from former successfully replaced photo's folder
+                    else:
+                        photo_folder_old = photo[:photo.rindex('/')]
+                        ans = askyesno('Image missing', photo + '\n re-link it?')
+                        if ans:    # re-link
+                            newphoto = askopenfilename(title='Relink:    ' + photo,
+                                                       filetypes=[('Image file', photo[-4:])])
+                            photo_folder_new = newphoto[:newphoto.rindex('/')]
+                            if newphoto == '':
+                                showerror('Image missing', 'Could not link photos, please open other projects!')
+                            else:
+                                SysTemp['photos'][line] = newphoto
+                                PicOk = True
+                        else:    # not relink -> delete missing message
+                            del SysTemp['photos'][line]
+                            del SysTemp['CtrlOnOff'][line]
+                            del SysTemp['PointPosition'][line]
+                            del SysTemp['Rotate'][line]
+                            del SysTemp['CalcuData'][line]
+                            del SysTemp['CamInfo'][line]
+                            del SysTemp['TreeNo.'][line]
+                            PicOk = True
             if PicOk:
                 PicSelectMenu.AddPicButton(SysTemp['photos'],new=False)
                 PicSelectMenu.AddPicbtn.config(state=NORMAL)
@@ -720,13 +736,26 @@ class TableInfo(Frame):
 
 if __name__ == '__main__':
     # show trackback in errormessage
+
+    def my_except_hook(type, value, tb):
+        exception_string = "".join(traceback.format_exception(type, value, tb))
+        showerror('Error!', exception_string)
+
+    def quit_save_confirm():
+        # Save project file when exit
+        if Projectdir != '':  # if user do not choose any project, exist without writing project file
+            ans = askyesno('warning', 'Save changes?')
+            if ans:
+                f = open(Projectdir + '.dbh', 'w')
+                f.write(str(SysTemp))
+                f.close()
+        root.destroy()
+
     global SysTemp, Projectdir
     Projectdir=''
     SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[],'TreeNo.':[]}
-    def my_except_hook(type, value, tb):
-        exception_string = "".join(traceback.format_exception(type, value, tb))
-        showerror('Error!',exception_string)
-    sys.excepthook = my_except_hook
+
+
     # main body starts
     root = Tk()
     root.title('ImageDBH')
@@ -739,9 +768,6 @@ if __name__ == '__main__':
     ScrolledCanvas.pack(side=LEFT)
     TableInfo = TableInfo(root)
     TableInfo.pack(side=RIGHT)
+    root.protocol("WM_DELETE_WINDOW", quit_save_confirm)
+    sys.excepthook = my_except_hook
     root.mainloop()
-    # Save project file when exit
-    if Projectdir != '':    # if user do not choose any project, exist without writing project file
-        f = open(Projectdir + '.dbh', 'w')
-        f.write(str(SysTemp))
-        f.close()
