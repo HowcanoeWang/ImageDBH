@@ -10,6 +10,7 @@ from PIL.ImageTk import Image
 from PIL.ImageTk import PhotoImage
 import DBHCalculation
 
+
 class ScrolledCanvas(Frame):
     Imagedir = ''
     NewTree_OnOff = -1
@@ -359,6 +360,7 @@ class ScrolledCanvas(Frame):
     def my_except_hook(type, value, tb):
         exception_string = "".join(traceback.format_exception(type, value, tb))
         showerror('Error!',exception_string)
+
     sys.excepthook = my_except_hook
 
 class MenuBar(Frame):
