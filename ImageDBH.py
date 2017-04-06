@@ -46,10 +46,6 @@ class ScrolledCanvas(Frame):
         canvas.bind('<B1-Motion>', self.onMovePoint)
         canvas.bind('<ButtonRelease-1>', self.LooseMouse)
 
-        #canvas.bind('<Double-1>', self.Num2Position)
-        #canvas.bind('<Double-2>', self.Open_Picture)
-        #canvas.bind('<Double-3>',self.ClearCanvas)
-
         sbarx = Scrollbar(self,orient='horizontal')
         sbary = Scrollbar(self)
         sbarx.config(command=canvas.xview,bg='white')
@@ -66,8 +62,6 @@ class ScrolledCanvas(Frame):
     def Open_Picture(self,event=None):
         self.ClearCanvas()
         image = Image.open(self.Imagedir)
-        # self.kinds = [file=image, image.transpose]
-        # photo = ImageTk.PhotoImage(file=self.Imagedir)
         if self.Rotate == 90 or self.Rotate == -270:
             photo = PhotoImage(image.transpose(Image.ROTATE_270))
         elif self.Rotate == 180 or self.Rotate == -180:
@@ -90,7 +84,9 @@ class ScrolledCanvas(Frame):
     def ClearCanvas(self,event=None):
         # event.widget.delete('all')  # use tag all
         self.canvas.delete('all')
-        self.PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[], 'DP1': [],'DP2':[], 'DC': [], 'DL':[],'DBH': [],'Comb':[]}
+        self.PointNum = {'UP1': [],'UP2':[], 'UC': [],'UL':[],
+                         'DP1': [],'DP2':[], 'DC': [], 'DL':[],
+                         'DBH': [],'Comb':[]}
         self.TreeNum = 0
 
     def onPutPoint(self,event):
@@ -113,13 +109,16 @@ class ScrolledCanvas(Frame):
                 # Add information to DataFrame
                 self.PointNum['UP2'].append(ID_p2)
                 # Calculate centre point
-                (Cx, Cy)=self.Calcu_CentrePoints(self.PointNum['UP1'][i],self.PointNum['UP2'][i])
+                (Cx, Cy)=self.Calcu_CentrePoints(self.PointNum['UP1'][i],
+                                                 self.PointNum['UP2'][i])
                 # Draw centre point
                 ID_c = self.Create_Point(Cx, Cy, 'green')
                 # Add centre point information to DataFrame
                 self.PointNum['UC'].append(ID_c)
                 # Add curve line comb
-                self.PointNum['Comb'][i].append([self.PointNum['UP1'][i], self.PointNum['UP2'][i], self.PointNum['UC'][i]])
+                self.PointNum['Comb'][i].append([self.PointNum['UP1'][i],
+                                                 self.PointNum['UP2'][i],
+                                                 self.PointNum['UC'][i]])
                 # Draw curve line
                 ID_l = self.Create_Curveline(self.PointNum['Comb'][i][0])
                 # Add line information to DataFrame
@@ -141,13 +140,16 @@ class ScrolledCanvas(Frame):
                 # Add information to DataFrame
                 self.PointNum['DP2'].append(ID_p2)
                 # Calculate centre point
-                (Cx, Cy) = self.Calcu_CentrePoints(self.PointNum['DP1'][i],self.PointNum['DP2'][i])
+                (Cx, Cy) = self.Calcu_CentrePoints(self.PointNum['DP1'][i],
+                                                   self.PointNum['DP2'][i])
                 # Draw centre point
                 ID_c = self.Create_Point(Cx, Cy, 'green')
                 # Add centre point information to DataFrame
                 self.PointNum['DC'].append(ID_c)
                 # Add curve line comb
-                self.PointNum['Comb'][i].append([self.PointNum['DP1'][i], self.PointNum['DP2'][i], self.PointNum['DC'][i]])
+                self.PointNum['Comb'][i].append([self.PointNum['DP1'][i],
+                                                 self.PointNum['DP2'][i],
+                                                 self.PointNum['DC'][i]])
                 # Draw curve line
                 ID_l = self.Create_Curveline(self.PointNum['Comb'][i][1])
                 # Add line information to DataFrame
@@ -156,13 +158,11 @@ class ScrolledCanvas(Frame):
                 self.NewTree_OnOff = -1
                 # Add tree Number
                 self.TreeNum += 1
-                #print(self.PointNum)
                 global SysTemp,TreeNo
                 # save points and tree number information
                 SysTemp['PointPosition'][PicSelectMenu.NowPicNum] = self.Num2Position()
                 SysTemp['TreeNo.'][PicSelectMenu.NowPicNum].append(TreeNo)
                 PicSelectMenu.ShowInTable()
-                #print(SysTemp['PointPosition'])
 
     def onMovePoint(self,event):
         # not in add point mode(make sure this click is move points rather than add points)
@@ -172,7 +172,8 @@ class ScrolledCanvas(Frame):
             # Select a new point, initialise self.ISIN
             if self.ISIN == False:
                 idtouched = event.widget.find_closest(x, y)
-                # if the canvas is empty(just open without any photo), IDtouched == (), function self.isin goes error
+                # if the canvas is empty(just open without any photo),
+                #    IDtouched == (), function self.isin goes error
                 if idtouched:
                     isin = self.isin(idtouched[0])
                     # if selected point belongs to PointNum,
@@ -184,7 +185,8 @@ class ScrolledCanvas(Frame):
                         self.ISIN = isin
             # Do not release mouse, keep moving
             else:
-                self.canvas.coords(self.ISIN[3], (x - 5, y - 5, x + 5, y + 5))  # set selected point position == mouse position
+                # set selected point position == mouse position
+                self.canvas.coords(self.ISIN[3], (x - 5, y - 5, x + 5, y + 5))
                 Comb = self.PointNum['Comb']
                 #print(Comb)
                 for i in range(len(Comb)):
@@ -257,7 +259,8 @@ class ScrolledCanvas(Frame):
 
     def ID2Position(self,ID):
         Position = self.canvas.coords(ID)
-        if len(Position) == 4: # curve line returns 6 parametres while points(circle) returns 4 parametres
+        # curve line returns 6 parametres while points(circle) returns 4 parameters
+        if len(Position) == 4:
             X_5 = Position[0]
             Y_5 = Position[1]
             Position = [X_5+5,Y_5+5]
@@ -271,7 +274,8 @@ class ScrolledCanvas(Frame):
             Ans = ID in self.PointNum[i]
             if Ans or False:
                 isin = True
-                PointKind = ['UP1','UP2', 'UC', 'DP1','DP2', 'DC'].index(i) # record the point kind in order to change SysTemp by mouse moving function
+                # record the point kind in order to change SysTemp by mouse moving function
+                PointKind = ['UP1','UP2', 'UC', 'DP1','DP2', 'DC'].index(i)
                 PointLine = self.PointNum[i].index(ID)
         return (isin,PointLine,PointKind,ID)
 
@@ -294,7 +298,9 @@ class ScrolledCanvas(Frame):
             # Add centre point information to DataFrame
             self.PointNum['UC'].append(ID_c)
             # Add curve line comb
-            self.PointNum['Comb'][i].append([self.PointNum['UP1'][i], self.PointNum['UP2'][i], self.PointNum['UC'][i]])
+            self.PointNum['Comb'][i].append([self.PointNum['UP1'][i],
+                                             self.PointNum['UP2'][i],
+                                             self.PointNum['UC'][i]])
             # Draw curve line
             ID_l = self.Create_Curveline(self.PointNum['Comb'][i][0])
             # Add line information to DataFrame
@@ -312,7 +318,9 @@ class ScrolledCanvas(Frame):
             # Add centre point information to DataFrame
             self.PointNum['DC'].append(ID_c)
             # Add curve line comb
-            self.PointNum['Comb'][i].append([self.PointNum['DP1'][i], self.PointNum['DP2'][i], self.PointNum['DC'][i]])
+            self.PointNum['Comb'][i].append([self.PointNum['DP1'][i],
+                                             self.PointNum['DP2'][i],
+                                             self.PointNum['DC'][i]])
             # Draw curve line
             ID_l = self.Create_Curveline(self.PointNum['Comb'][i][1])
             # Add line information to DataFrame
@@ -388,14 +396,6 @@ class MenuBar(Frame):
         edit.add_separator()
         ebutton.config(menu=edit, bg='white')
 
-        #cbutton = Menubutton(menubar, text='Calculate', underline=0,state=DISABLED)
-        #cbutton.pack(side=LEFT)
-        #calcu = Menu(cbutton, tearoff=False)
-        #calcu.add_command(label='Distance', command=self.Distance, underline=0)
-        #calcu.add_command(label='Angle', command=self.notdone,underline=0)
-        #calcu.add_command(label='DBH', command=self.notdone, underline=0)
-        #cbutton.config(menu=calcu, bg='white')
-
         cbutton = Menubutton(menubar, text='Export', underline=0, state=DISABLED)
         cbutton.pack(side=LEFT)
         export = Menu(cbutton, tearoff=False)
@@ -417,7 +417,8 @@ class MenuBar(Frame):
         showerror('Not implemented','Not yet available')
 
     def Add_points_on(self):
-        global SysTemp,TreeNo # set tree number as global to save it in the end of add points in ScrolledCanvas.onAddPoint
+        # set tree number as global to save it in the end of add points in ScrolledCanvas.onAddPoint
+        global SysTemp,TreeNo
         TreeNo = askstring('Notice', 'Print Tree number')
         if TreeNo != None:
             if TreeNo == '':
@@ -568,7 +569,8 @@ class PicSelectMenu(Frame):
         toolbar = Frame(MainFrame, relief=SUNKEN, bd=2)
         toolbar.config(height=45, bg='white')
         toolbar.pack(side=LEFT, fill=X)
-        AddPicbtn = Button(MainFrame, text='Add\nImages', command=self.AddPic, bg='white', state=DISABLED)
+        AddPicbtn = Button(MainFrame, text='Add\nImages',
+                           command=self.AddPic, bg='white', state=DISABLED)
         AddPicbtn.pack(side=RIGHT, fill=Y)
 
 
@@ -627,7 +629,8 @@ class PicSelectMenu(Frame):
         #    which means add a new tree
         # or move a tree point
         # then refresh information in table panel
-        if len(SysTemp['CalcuData'][self.NowPicNum]) != len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.ISIN:
+        if len(SysTemp['CalcuData'][self.NowPicNum]) != \
+                len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.ISIN:
             PointPosition = ScrolledCanvas.Num2Position()
             data = DBHCalculation.output(PointPosition, CamInfo, TreeNo)
             SysTemp['CalcuData'][self.NowPicNum] = data
@@ -755,8 +758,8 @@ if __name__ == '__main__':
 
     global SysTemp, Projectdir
     Projectdir=''
-    SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],'CalcuData':[],'CtrlOnOff':[],'Rotate':[],'TreeNo.':[]}
-
+    SysTemp = {'photos':[],'PointPosition':[],'CamInfo':[],
+               'CalcuData':[],'CtrlOnOff':[],'Rotate':[],'TreeNo.':[]}
 
     # main body starts
     root = Tk()

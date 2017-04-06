@@ -100,24 +100,15 @@ def _Calcu_Scale(ReadyData):
     Yuc = ReadyData['UC'][1]
     Ydc = ReadyData['DC'][1]
     Ymc = ReadyData['COC'][1]     # centre of camera
-    #YScale_C1 = 30/abs(Yuc-Ymc)    # (cm/pix)
-    #YScale_C2 = 15/abs(Ydc-Ymc)    # (cm/pix)
     YScale_C3 = 45/abs(Yuc-Ydc)    # (cm/pix)
-    #YScale_C = (YScale_C1 + YScale_C2 + YScale_C3)/3 # (cm/pix)
     YScale_C =YScale_C3
     # Calculate the edge point Y scale
     Yuel = ReadyData['UEL'][1]
     Yuer = ReadyData['UER'][1]
     Ydel = ReadyData['DEL'][1]
     Yder = ReadyData['DER'][1]
-    #YScale_EL1 = 30/abs(Yuel-Ymc)    # (cm/pix)
-    #YScale_ER1 = 30/abs(Yuer-Ymc)    # (cm/pix)
-    #YScale_EL2 = 15/abs(Ydel-Ymc)    # (cm/pix)
-    #YScale_ER2 = 15/abs(Yder-Ymc)    # (cm/pix)
     YScale_EL3 = 45/abs(Yuel-Ydel)   # (cm/pix)
     YScale_ER3 = 45/abs(Yuer-Yder)   # (cm/pix)
-    #YScale_EL = (YScale_EL1 + YScale_EL2 + YScale_EL3)/3    # (cm/pix)
-    #YScale_ER = (YScale_ER1 + YScale_ER2 + YScale_ER3)/3    # (cm/pix)
     YScale_E = (YScale_EL3 + YScale_ER3)/2
     YScale = {'YE':YScale_E,'YC':YScale_C}
     return YScale
@@ -127,18 +118,16 @@ def output(PointPosition, CamInfo, TreeNo):
     #            [No., Angle, Distance, DBH]...]
     CalcuData = []
     for i in range(len(PointPosition)):
-        #print(PointPosition[i],i)
-        #TanX,TanY,a = Calcu_TanTheta(PointPosition[i][6],PointPosition[i][7])
         TanX, TanY, a = Calcu_TanTheta(PointPosition[i][6], CamInfo)
         Ready_Data = Judge_PointRealPosition(PointPosition[i])
-        #print(Ready_Data)
+
         YScale = _Calcu_Scale(Ready_Data)
         Ag = Calcu_Angle(Ready_Data)
         Dc = Calcu_Distance(Ready_Data,YScale['YC'],TanY)
         De = Calcu_Distance(Ready_Data,YScale['YE'],TanY)
-        #print(Dc,De)
+
         DBH = Calcu_DBH(Ready_Data, YScale, Dc, De)
-        #print(DBH)
+
         CalcuData.append([str(TreeNo[i]), str(Ag)+'°', str(round(Dc/100,2))+'m', str(round(DBH,2))+'cm'])
     return CalcuData
 
