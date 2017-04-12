@@ -1,0 +1,1 @@
+cd C:\Users\Waston\Documents\pyinstaller && pyinstaller -F -w C:\Users\Waston\Documents\GitHub\ImageDBH\ImageDBH.py
