@@ -616,6 +616,8 @@ class PicSelectMenu(Frame):
         # show Caminfo
         CamInfo = SysTemp['CamInfo'][self.NowPicNum]
         TreeNo = SysTemp['TreeNo.'][self.NowPicNum]
+        Rotate = SysTemp['Rotate'][self.NowPicNum]
+        # Refresh Table Panel Information
         TableInfo.Ml.delete('0', END)
         TableInfo.Ml.insert(0, CamInfo['Model'])
         TableInfo.FL.delete('0', END)
@@ -632,7 +634,7 @@ class PicSelectMenu(Frame):
         if len(SysTemp['CalcuData'][self.NowPicNum]) != \
                 len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.ISIN:
             PointPosition = ScrolledCanvas.Num2Position()
-            data = DBHCalculation.output(PointPosition, CamInfo, TreeNo)
+            data = DBHCalculation.output(PointPosition, CamInfo, TreeNo, Rotate)
             SysTemp['CalcuData'][self.NowPicNum] = data
         else:
             data = SysTemp['CalcuData'][self.NowPicNum]

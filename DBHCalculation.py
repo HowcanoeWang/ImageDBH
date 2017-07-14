@@ -113,7 +113,7 @@ def _Calcu_Scale(ReadyData):
     YScale = {'YE':YScale_E,'YC':YScale_C}
     return YScale
 
-def output(PointPosition, CamInfo, TreeNo):
+def output(PointPosition, CamInfo, TreeNo, Rotate):
     # Calcudata=[[No., Angle, Distance, DBH].
     #            [No., Angle, Distance, DBH]...]
     CalcuData = []
@@ -138,4 +138,5 @@ if __name__ == '__main__':
          [1944, 2592]]]
     CamInfo={'FocalLength': 5.8, 'FPY': 4.2672, 'Model': 'Canon PowerShot SD430 WIRELESS', 'FPX': 5.715,
                         'Size': (2592, 1944)}
-    output(PointPosition,CamInfo)
+    CalcuData = output(PointPosition,CamInfo,[1])
+    print(CalcuData)
