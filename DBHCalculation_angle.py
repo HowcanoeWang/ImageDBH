@@ -94,7 +94,7 @@ def pixels2xoy(readyData, PointPosition_6, caminfo, rotate=0):
     else:
         fpw = fpmin
         fph = fpmax
-    print(width, height, fpw, fph, f)
+    # print(width, height, fpw, fph, f)
     
     # transfer pixelWH to coordinate
     def normalize(pixel_w_h):
@@ -121,7 +121,6 @@ def pixels2xoy(readyData, PointPosition_6, caminfo, rotate=0):
 
 
 def real_coordinate_calculation(xoy, distance):
-    theta = 0   # default horizontal 0 degree
     f = xoy['A'][2]
     xyz = {'A': [], 'B': [], 'C': [], 'D': [], 'E': [], 'F': []}
 
@@ -157,77 +156,43 @@ def real_coordinate_calculation(xoy, distance):
 
     theta_true = (abs(theta_l - theta_c) + abs(theta_r - theta_c)) / 2
 
-    print(theta_l, theta_c, theta_r, theta_true)
-    print(xyz)
+    # print(theta_l, theta_c, theta_r, theta_true)
+    # print(xyz)
 
     #three_d_view(xyz)
     return xyz, theta_true
 
 
 def Circle_calculation(A,B,C):
-    ### Method 1
     # xoz coordinate
     (Ax, _, Ay) = A
     (Bx, _, By) = B
     (Cx, _, Cy) = C
-    # AB mid
-    mid1x = (Ax + Bx) / 2
-    mid1y = (Ay + By) / 2
-    # BC mid
-    mid2x = (Ax + Cx) / 2
-    mid2y = (Ay + Cy) / 2
-    # 求出分别与直线AB，BC垂直的直线的斜率
-    # Calculate the slope of the vertical line with the AB and BC
-    if By - Ay != 0:
-        k1 = -(Bx - Ax) / (By - Ay)
-        # y - mid1y = k1(x - mid1x)
-    else:
-        k1 = 'NaN'
-        # x = mid1x
-
-    if Cy - Ay != 0:
-        k2 = -(Cx - Ax) / (Cy - Ay)
-        # y - mid2y = k2(x - mid2x)
-    else:
-        k2 = 'NaN'
-        # x = mid2x
-
-    if k1 == 'NaN':
-        Center_x = mid1x
-        Center_y = mid2y + k2 * (mid1x - mid2x)
-    elif k2 == 'NaN':
-        Center_x = mid2x
-        Center_y = mid1y + k1 * (mid2x - mid1x)
-    else:
-        Center_x = (mid2y - mid1y - k2 * mid2x + k1 * mid1x) / (k1 - k2)
-        Center_y = mid1y + k1 * (mid2y - mid1y - k2 * mid2x + k2 * mid1x) / (k1 - k2)
-
     ### Method2
     A1 = Ax - Bx
     B1 = Ay - By
-    C1 = (Ax**2 -Bx**2 + Ay**2 - By **2) /2
+    C1 = (Ax ** 2 - Bx ** 2 + Ay ** 2 - By ** 2) / 2
     A2 = Cx - Bx
     B2 = Cy - By
-    C2 = (Cx**2 -Bx**2 + Cy**2 -By**2)/2
+    C2 = (Cx ** 2 - Bx ** 2 + Cy ** 2 - By ** 2) / 2
     temp = A1*B2 - A2*B1
     if temp == 0:
         Center_X = Ax
         Center_Y = Ay
     else:
-        Center_X = (C1*B2 - C2*B1)/temp
-        Center_Y = (A1*C2 - A2*C1)/temp
+        Center_X = (C1 * B2 - C2 * B1) / temp
+        Center_Y = (A1 * C2 - A2 * C1) / temp
 
     # Distance calculation
     def distance_calculation(x1, y1, x2, y2):
         d = sqrt((x1 - x2)**2 + (y1 - y2)**2)
         return d
 
-    D2O = distance_calculation(Center_X, Center_Y, 0, 0)
-    R1 = distance_calculation(Center_X, Center_Y, Ax, Ay)
-    R2 = distance_calculation(Center_X, Center_Y, Bx, By)
-    R3 = distance_calculation(Center_X, Center_Y, Cx, Cy)
-    print(D2O, R1)
-    return D2O-R1, R1
+    d2o = distance_calculation(Center_X, Center_Y, 0, 0)
+    r1 = distance_calculation(Center_X, Center_Y, Ax, Ay)
+    # r2 = distance_calculation(Center_X, Center_Y, Bx, By)
+    # r3 = distance_calculation(Center_X, Center_Y, Cx, Cy)
+    return d2o-r1, r1
 
 
 def three_d_view(xyz_real):
@@ -261,7 +226,7 @@ def output(PointPosition, CamInfo, TreeNo, Rotate, distance=45):
         Dc2, R2 = Circle_calculation(XYZ['D'], XYZ['E'], XYZ['F'])
         Dc = (Dc1+Dc2)/20
         DBH = (R1 + R2)/10
-        print(Dc, DBH)
+        # print(Dc, DBH)
         calcu_data.append([str(TreeNo[i]), str(round(Theta,1))+'°', str(round(Dc/100,2))+'m', str(round(DBH,2))+'cm'])
     return calcu_data
 
@@ -275,4 +240,4 @@ if __name__ == '__main__':
     PointPosition = [[[1564.0, 2532.0], [2093.0, 2527.0], [1821.0, 2450.0], [1482.0, 2863.0], [2188.0, 2872.0], [1820.0, 2940.0], [3744, 5616]]]
 
     CalcuData = output(PointPosition, CamInfo, [1], Rotate)
-    print(CalcuData)
+    #print(CalcuData)

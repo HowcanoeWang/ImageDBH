@@ -8,7 +8,7 @@ from tkinter import ttk
 from PIL import ExifTags
 from PIL.ImageTk import Image
 from PIL.ImageTk import PhotoImage
-import DBHCalculation
+import DBHCalculation_angle
 
 
 class ScrolledCanvas(Frame):
@@ -634,7 +634,7 @@ class PicSelectMenu(Frame):
         if len(SysTemp['CalcuData'][self.NowPicNum]) != \
                 len(SysTemp['PointPosition'][self.NowPicNum]) or ScrolledCanvas.ISIN:
             PointPosition = ScrolledCanvas.Num2Position()
-            data = DBHCalculation.output(PointPosition, CamInfo, TreeNo, Rotate)
+            data = DBHCalculation_angle.output(PointPosition, CamInfo, TreeNo, Rotate)
             SysTemp['CalcuData'][self.NowPicNum] = data
         else:
             data = SysTemp['CalcuData'][self.NowPicNum]
